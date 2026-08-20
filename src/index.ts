@@ -1,15 +1,9 @@
 import express from 'express';
 import cors from 'cors';
 import { httpServerHandler } from 'cloudflare:node';
-import { env } from 'cloudflare:workers';
-
-import profileRoutes from './routes/profile';
-
-import type { Env } from './types/env';
+import apiRoutes from './api/routes';
 
 const app = express();
-
-const workerEnv = env as unknown as Env;
 
 app.use(
 	cors({
@@ -31,7 +25,7 @@ app.get('/health', (req, res) => {
 	});
 });
 
-app.use('/profile', profileRoutes);
+app.use('/api', apiRoutes);
 
 app.listen(3000);
 

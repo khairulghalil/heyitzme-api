@@ -1,8 +1,8 @@
 import type { Request, Response } from 'express';
-import { getProfileByUsername } from '../services/profileService';
-import { createSupabaseClient } from '../config/supabase';
+import { getProfileByUsername } from './service';
+import { createSupabaseClient } from '../../config/supabase';
 import { env } from 'cloudflare:workers';
-import type { Env } from '../types/env';
+import type { Env } from '../../types/env';
 
 export const getProfile = async (req: Request, res: Response) => {
 	try {
@@ -15,12 +15,13 @@ export const getProfile = async (req: Request, res: Response) => {
 			success: true,
 			data: response,
 		});
-	} catch (error) {
-		console.error('Error:', error);
+	} catch (err) {
+		const error = err instanceof Error ? err.message : 'An error occurred';
+		console.error(error);
 
 		res.status(500).json({
 			success: false,
-			message: 'An error occurred',
+			message: error,
 		});
 	}
 };
