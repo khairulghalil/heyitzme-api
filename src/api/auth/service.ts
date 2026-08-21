@@ -1,7 +1,13 @@
 import bcrypt from 'bcryptjs';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { env } from 'cloudflare:workers';
+import { createSupabaseClient } from '../../config/supabase';
+import type { Env } from '../../types/env';
+import { generateToken } from '../../common';
 
-export const loginByUsername = async (supabase: SupabaseClient, params: any) => {
+const workerEnv = env as unknown as Env;
+const supabase = createSupabaseClient(workerEnv);
+
+export const loginByUsername = async (params: any) => {
 	const { data: user, error } = await supabase.from('profiles').select('*').eq('username', params.username).single();
 
 	if (error || !user) {
@@ -14,7 +20,9 @@ export const loginByUsername = async (supabase: SupabaseClient, params: any) => 
 		throw new Error('Invalid username or password');
 	}
 
-	const response = {
+	const token = await generateToken(user.username);
+
+	const updUser = {
 		username: user.username,
 		name: user.name,
 		bio: user.bio,
@@ -25,6 +33,11 @@ export const loginByUsername = async (supabase: SupabaseClient, params: any) => 
 		social_media: user.social_media,
 		theme: user.theme,
 		status: user.status,
+	};
+
+	const response = {
+		token,
+		user: updUser,
 	};
 
 	return response;

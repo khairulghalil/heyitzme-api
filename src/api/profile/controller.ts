@@ -1,15 +1,10 @@
 import type { Request, Response } from 'express';
 import { getProfileByUsername } from './service';
-import { createSupabaseClient } from '../../config/supabase';
-import { env } from 'cloudflare:workers';
-import type { Env } from '../../types/env';
 
 export const getProfile = async (req: Request, res: Response) => {
 	try {
 		const username = req.params.username as string;
-		const supabase = createSupabaseClient(env as unknown as Env);
-
-		const response = await getProfileByUsername(supabase, username);
+		const response = await getProfileByUsername(username);
 
 		res.json({
 			success: true,

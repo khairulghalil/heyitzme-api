@@ -1,16 +1,10 @@
 import type { Request, Response } from 'express';
 import { loginByUsername } from './service';
-import { createSupabaseClient } from '../../config/supabase';
-import { env } from 'cloudflare:workers';
-import type { Env } from '../../types/env';
 
 export const login = async (req: Request, res: Response) => {
 	try {
 		const data = req.body;
-
-		const supabase = createSupabaseClient(env as unknown as Env);
-
-		const response = await loginByUsername(supabase, data);
+		const response = await loginByUsername(data);
 
 		res.json({
 			success: true,
