@@ -26,7 +26,7 @@ app.get('/health', (req, res) => {
 	});
 });
 
-app.use('/api', apiRoutes);
+app.use('/', apiRoutes);
 
 app.listen(3000);
 
