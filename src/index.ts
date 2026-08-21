@@ -7,7 +7,7 @@ const app = express();
 
 app.use(
 	cors({
-		origin: ['http://localhost:5173', 'http://localhost:5500', 'https://heyitzme.com', 'https://heyitzme-ui.pages.dev/'],
+		origin: ['http://localhost:5173', 'http://localhost:5500', 'https://heyitzme.com', 'https://heyitzme-ui.pages.dev'],
 	}),
 );
 
