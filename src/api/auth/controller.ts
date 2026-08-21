@@ -6,9 +6,14 @@ export const login = async (req: Request, res: Response) => {
 		const data = req.body;
 		const response = await loginByUsername(data);
 
+		res.setHeader(
+			'Set-Cookie',
+			`access_token=${response.accessToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 7}`,
+		);
+
 		res.json({
 			success: true,
-			data: response,
+			data: response.authHint,
 		});
 	} catch (err) {
 		const error = err instanceof Error ? err.message : 'An error occurred';

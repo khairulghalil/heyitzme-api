@@ -2,13 +2,13 @@ import bcrypt from 'bcryptjs';
 import { env } from 'cloudflare:workers';
 import { createSupabaseClient } from '../../config/supabase';
 import type { Env } from '../../types/env';
-import { generateToken } from '../../common';
+import { generateToken, durationToMs } from '../../common';
 
 const workerEnv = env as unknown as Env;
 const supabase = createSupabaseClient(workerEnv);
 
 export const loginByUsername = async (params: any) => {
-	const { data: user, error } = await supabase.from('profiles').select('*').eq('username', params.username).single();
+	const { data: user, error } = await supabase.from('profiles').select('password_hash').eq('username', params.username).single();
 
 	if (error || !user) {
 		throw new Error('Invalid username or password');
@@ -20,24 +20,18 @@ export const loginByUsername = async (params: any) => {
 		throw new Error('Invalid username or password');
 	}
 
-	const accessToken = await generateToken(user.username);
+	const accessToken = await generateToken(params.username);
 
-	const updUser = {
-		username: user.username,
-		name: user.name,
-		bio: user.bio,
-		profile_image: user.profile_image,
-		profile_image_ver: user.profile_image_ver,
-		about: user.about,
-		contact: user.contact,
-		social_media: user.social_media,
-		theme: user.theme,
-		status: user.status,
+	const authHint = {
+		user: params.username,
+		expiresAt: Date.now() + durationToMs(workerEnv.JWT_EXPIRES_IN),
 	};
+
+	const encodedAuthHint = btoa(JSON.stringify(authHint));
 
 	const response = {
 		accessToken,
-		user: updUser,
+		authHint: encodedAuthHint,
 	};
 
 	return response;
