@@ -20,7 +20,7 @@ export const loginByUsername = async (params: any) => {
 		throw new Error('Invalid username or password');
 	}
 
-	const token = await generateToken(user.username);
+	const accessToken = await generateToken(user.username);
 
 	const updUser = {
 		username: user.username,
@@ -36,7 +36,7 @@ export const loginByUsername = async (params: any) => {
 	};
 
 	const response = {
-		token,
+		accessToken,
 		user: updUser,
 	};
 

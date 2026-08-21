@@ -1,3 +1,7 @@
 ENV=development
+
 SUPABASE_URL=https://xxxxxxxxxxxxxxx.supabase.co
 SUPABASE_SECRET_KEY=sb_secret_xxxxxxxxxxxxxxxxxx
+
+JWT_SECRET=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+JWT_EXPIRES_IN=1d
