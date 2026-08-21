@@ -26,3 +26,9 @@ git push -u origin main
 
 nvm install 22
 nvm use 22
+
+# To deploy to Cloudflare Worker
+
+npx wrangler secret put SUPABASE_URL
+npx wrangler secret put SUPABASE_SECRET_KEY
+npx wrangler deploy
