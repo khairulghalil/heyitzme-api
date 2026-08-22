@@ -7,10 +7,13 @@ export const login = async (req: Request, res: Response) => {
 		const data = req.body;
 		const response = await loginByUsername(data);
 
-		res.setHeader(
-			'Set-Cookie',
-			`access_token=${response.accessToken}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 7}`,
-		);
+		res.cookie('access_token', response.accessToken, {
+			httpOnly: true,
+			secure: true,
+			sameSite: 'lax',
+			path: '/',
+			maxAge: 7 * 24 * 60 * 60 * 1000,
+		});
 
 		res.json({
 			success: true,

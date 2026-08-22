@@ -1,4 +1,5 @@
 import express from 'express';
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import { httpServerHandler } from 'cloudflare:node';
 import apiRoutes from './api/routes';
@@ -8,10 +9,12 @@ const app = express();
 app.use(
 	cors({
 		origin: ['http://localhost:5173', 'http://192.168.0.157:5173', 'https://heyitzme.com', 'https://heyitzme-ui.pages.dev'],
+		credentials: true,
 	}),
 );
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.get('/', (req, res) => {
 	res.json({
