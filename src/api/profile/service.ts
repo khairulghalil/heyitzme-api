@@ -3,6 +3,7 @@ import { createSupabaseClient } from '../../config/supabase';
 import type { Env } from '../../types/env';
 import { keysToCamel, keysToSnake, AppError } from '../../common';
 import { ERROR_MESSAGES } from '../../constants';
+import { sanitize } from '../../utils/sanitize';
 
 const workerEnv = env as unknown as Env;
 const supabase = createSupabaseClient(workerEnv);
@@ -24,7 +25,20 @@ export const getProfileByUsername = async (username: string) => {
 
 export const updateProfileByUsername = async (username: string, body: Record<string, any>) => {
 	const transformedData = keysToSnake(body);
-	const { error } = await supabase.from('profiles').update(transformedData).eq('username', username).select().single();
+	const keysToExclude = [
+		'id',
+		'username',
+		'profile_image',
+		'profile_image_ver',
+		'status.expiry_date',
+		'created_at',
+		'updated_at',
+		'password_hash',
+	];
+
+	const sanitizedBody = sanitize(transformedData, keysToExclude);
+
+	const { error } = await supabase.from('profiles').update(sanitizedBody).eq('username', username).select().single();
 
 	if (error) {
 		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
