@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { AppError } from '../../common';
 import { getProfileByUsername } from './service';
 
 export const getProfile = async (req: Request, res: Response) => {
@@ -11,10 +12,10 @@ export const getProfile = async (req: Request, res: Response) => {
 			data: response,
 		});
 	} catch (err) {
-		const error = err instanceof Error ? err.message : 'An error occurred';
-		console.error(error);
+		const error = err instanceof AppError ? err.message : 'An error occurred';
+		const statusCode = err instanceof AppError ? err.statusCode : 500;
 
-		res.status(500).json({
+		res.status(statusCode).json({
 			success: false,
 			message: error,
 		});

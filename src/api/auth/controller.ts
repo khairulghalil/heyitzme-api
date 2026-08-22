@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import { AppError } from '../../common';
 import { loginByUsername } from './service';
 
 export const login = async (req: Request, res: Response) => {
@@ -16,10 +17,10 @@ export const login = async (req: Request, res: Response) => {
 			data: response.authHint,
 		});
 	} catch (err) {
-		const error = err instanceof Error ? err.message : 'An error occurred';
-		console.error(error);
+		const error = err instanceof AppError ? err.message : 'An error occurred';
+		const statusCode = err instanceof AppError ? err.statusCode : 500;
 
-		res.status(500).json({
+		res.status(statusCode).json({
 			success: false,
 			message: error,
 		});
