@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { createSupabaseClient } from '../../config/supabase';
 import type { Env } from '../../types/env';
-import { transformKeys, AppError } from '../../common';
+import { keysToCamel, keysToSnake, AppError } from '../../common';
 import { ERROR_MESSAGES } from '../../constants';
 
 const workerEnv = env as unknown as Env;
@@ -18,18 +18,17 @@ export const getProfileByUsername = async (username: string) => {
 		throw new AppError(ERROR_MESSAGES.NOT_FOUND);
 	}
 
-	const response = transformKeys(user);
+	const response = keysToCamel(user);
 	return response;
 };
 
-export const updateProfileByUsername = async (username: string, data: Record<string, any>) => {
-	// const { data: profile, error } = await supabase.from('profiles').update(data).eq('username', username).select().single();
+export const updateProfileByUsername = async (username: string, body: Record<string, any>) => {
+	const transformedData = keysToSnake(body);
+	const { error } = await supabase.from('profiles').update(transformedData).eq('username', username).select().single();
 
-	// if (error) {
-	// 	throw error;
-	// }
+	if (error) {
+		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+	}
 
-	// return profile;
-
-	return { hye: 'hello' };
+	return;
 };

@@ -20,4 +20,9 @@ export const ERROR_MESSAGES = {
 		statusCode: StatusCodes.UNAUTHORIZED,
 		message: 'INVALID_CREDENTIALS',
 	},
+
+	INTERNAL_SERVER_ERROR: {
+		statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
+		message: 'INTERNAL_SERVER_ERROR',
+	},
 } as const;
