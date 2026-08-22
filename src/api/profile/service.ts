@@ -3,7 +3,7 @@ import { createSupabaseClient } from '../../config/supabase';
 import type { Env } from '../../types/env';
 import { ERROR_MESSAGES } from '../../constants';
 import { AppError } from '../../common';
-import { sanitize, keysToCamel, keysToSnake } from '../../utils';
+import { keysToCamel, keysToSnake } from '../../utils';
 
 const workerEnv = env as unknown as Env;
 const supabase = createSupabaseClient(workerEnv);
@@ -11,7 +11,7 @@ const supabase = createSupabaseClient(workerEnv);
 export const getProfileByUsername = async (username: string) => {
 	const { data: user, error } = await supabase
 		.from('profiles')
-		.select('username, name, bio, profile_image, profile_image_ver, about, contact, social_media, theme, status')
+		.select('username, name, bio, profile_image, profile_image_ver, about, contact, social_media, theme, status, expires_at')
 		.eq('username', username)
 		.single();
 
@@ -24,25 +24,29 @@ export const getProfileByUsername = async (username: string) => {
 };
 
 export const updateProfileByUsername = async (username: string, body: Record<string, any>) => {
-	const transformedData = keysToSnake(body);
-	const keysToExclude = [
-		'id',
-		'username',
-		'profile_image',
-		'profile_image_ver',
-		'status.expiry_date',
-		'created_at',
-		'updated_at',
-		'password_hash',
-	];
+	const toUpdate = {
+		name: body.name,
+		bio: body.bio,
+		profile_image_ver: body.profileImageVer,
+		about: body.about,
+		contact: body.contact,
+		social_media: body.socialMedia,
+		theme: body.theme,
+		status: body.status,
+		updated_at: new Date().toISOString(),
+	};
+	const transformedData = keysToSnake(toUpdate);
 
-	const sanitizedBody = sanitize(transformedData, keysToExclude);
-
-	const { error } = await supabase.from('profiles').update(sanitizedBody).eq('username', username).select().single();
+	const { data: user, error } = await supabase
+		.from('profiles')
+		.update(transformedData)
+		.eq('username', username)
+		.select('username, name, bio, profile_image, profile_image_ver, about, contact, social_media, theme, status, expires_at')
+		.single();
 
 	if (error) {
 		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
 	}
 
-	return;
+	return keysToCamel(user);
 };

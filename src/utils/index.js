@@ -1,4 +1,3 @@
 import { keysToCamel, keysToSnake } from './transformKeys';
-import { sanitize } from './sanitize';
 
-export { sanitize, keysToCamel, keysToSnake };
+export { keysToCamel, keysToSnake };
