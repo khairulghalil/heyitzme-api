@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { AppError } from '../../common';
+import { AppError, durationToMs } from '../../common';
 import { env } from 'cloudflare:workers';
 import type { Env } from '../../types/env';
 import { loginByUsername } from './service';
@@ -18,7 +18,7 @@ export const login = async (req: Request, res: Response) => {
 			secure: isProduction,
 			sameSite: 'lax',
 			path: '/',
-			maxAge: 7 * 24 * 60 * 60 * 1000,
+			maxAge: durationToMs(workerEnv.JWT_EXPIRES_IN),
 		});
 
 		res.json({
