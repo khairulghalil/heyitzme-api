@@ -37,8 +37,6 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 	};
 	const transformedData = keysToSnake(toUpdate);
 
-	// console.log('Transformed Data:', transformedData);
-
 	const { data: user, error } = await supabase
 		.from('profiles')
 		.update(transformedData)
@@ -51,6 +49,4 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 	}
 
 	return keysToCamel(user);
-
-	// return true;
 };
