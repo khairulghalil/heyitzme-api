@@ -4,4 +4,5 @@ export interface Env {
 	SUPABASE_SECRET_KEY: string;
 	JWT_SECRET: string;
 	JWT_EXPIRES_IN: string;
+	PROFILE_IMAGES: R2Bucket;
 }

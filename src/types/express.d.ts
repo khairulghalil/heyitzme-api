@@ -4,6 +4,7 @@ declare global {
 	namespace Express {
 		interface Request {
 			supabase: SupabaseClient;
+			file?: File;
 			user?: {
 				id: string;
 			};

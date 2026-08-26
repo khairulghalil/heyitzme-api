@@ -23,10 +23,22 @@ export const getProfileByUsername = async (username: string) => {
 	return response;
 };
 
-export const updateProfileByUsername = async (username: string, body: Record<string, any>) => {
+export const updateProfileByUsername = async (username: string, body: Record<string, any>, image?: File | null) => {
+	let imageKey: string | null = null;
+
+	if (image) {
+		imageKey = await uploadImageToR2(username, image);
+		console.log('Uploaded image to R2 with key:', imageKey);
+	}
+
+	if (image && !imageKey) {
+		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+	}
+
 	const toUpdate = {
 		name: body.name,
 		bio: body.bio,
+		profile_image: body.profileImage,
 		profile_image_ver: body.profileImageVer,
 		about: body.about,
 		contact: body.contact,
@@ -34,7 +46,9 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 		theme: body.theme,
 		status: body.status,
 		updated_at: new Date().toISOString(),
+		...(imageKey ? { profile_image: imageKey } : {}),
 	};
+
 	const transformedData = keysToSnake(toUpdate);
 
 	const { data: user, error } = await supabase
@@ -49,4 +63,17 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 	}
 
 	return keysToCamel(user);
+};
+
+const uploadImageToR2 = async (username: string, image: File) => {
+	const safeFilename = image.name.replace(/[^a-zA-Z0-9._-]/g, '_');
+	const imageKey = `profiles/${username}/${safeFilename}`;
+
+	await workerEnv.PROFILE_IMAGES.put(imageKey, await image.arrayBuffer(), {
+		httpMetadata: {
+			contentType: image.type || 'application/octet-stream',
+		},
+	});
+
+	return imageKey;
 };
