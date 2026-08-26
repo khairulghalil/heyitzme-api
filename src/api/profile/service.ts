@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers';
 import { createSupabaseClient } from '../../config/supabase';
 import type { Env } from '../../types/env';
 import { ERROR_MESSAGES } from '../../constants';
-import { AppError, logger } from '../../common';
+import { AppError, logger, uploadImageToR2, deleteImageFromR2 } from '../../common';
 import { keysToCamel, keysToSnake } from '../../utils';
 
 const workerEnv = env as unknown as Env;
@@ -28,7 +28,7 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 
 	if (image) {
 		logger.info('Uploading image to R2...');
-		imageKey = await uploadImageToR2(username, image);
+		imageKey = await uploadImageToR2(workerEnv.PROFILE_IMAGES, `profiles/${username}`, image);
 	}
 
 	if (image && !imageKey) {
@@ -63,7 +63,7 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 	if (error) {
 		if (image && imageKey) {
 			logger.error('Error on DB update, deleting recent image upload from R2...');
-			await deleteImageFromR2(imageKey);
+			await deleteImageFromR2(workerEnv.PROFILE_IMAGES, imageKey);
 		}
 
 		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
@@ -72,25 +72,8 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 	if (image && imageKey) {
 		const previousImageKey = `profiles/${username}/${username}-${user?.profile_image_ver - 1 || 0}.png`; // Assuming the previous image key format is known
 		logger.info('Deleting previous image from R2...');
-		await deleteImageFromR2(previousImageKey);
+		await deleteImageFromR2(workerEnv.PROFILE_IMAGES, previousImageKey);
 	}
 
 	return keysToCamel(user);
-};
-
-const uploadImageToR2 = async (username: string, image: File) => {
-	const safeFilename = image.name.replace(/[^a-zA-Z0-9._-]/g, '_');
-	const imageKey = `profiles/${username}/${safeFilename}`;
-
-	await workerEnv.PROFILE_IMAGES.put(imageKey, await image.arrayBuffer(), {
-		httpMetadata: {
-			contentType: image.type || 'application/octet-stream',
-		},
-	});
-
-	return imageKey;
-};
-
-const deleteImageFromR2 = async (imageKey: string) => {
-	await workerEnv.PROFILE_IMAGES.delete(imageKey);
 };
