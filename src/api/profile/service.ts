@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers';
 import { createSupabaseClient } from '../../config/supabase';
 import type { Env } from '../../types/env';
 import { ERROR_MESSAGES } from '../../constants';
-import { AppError } from '../../common';
+import { AppError, logger } from '../../common';
 import { keysToCamel, keysToSnake } from '../../utils';
 
 const workerEnv = env as unknown as Env;
@@ -27,15 +27,16 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 	let imageKey: string | null = null;
 
 	if (image) {
-		console.log('Uploading image to R2...');
+		logger.info('Uploading image to R2...');
 		imageKey = await uploadImageToR2(username, image);
 	}
 
 	if (image && !imageKey) {
+		logger.error('Error uploading image to R2, aborting profile update...');
 		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
 	}
 
-	console.log('Updating Supabase...');
+	logger.info('Updating profile in DB...');
 	const toUpdate = {
 		name: body.name,
 		bio: body.bio,
@@ -61,7 +62,7 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 
 	if (error) {
 		if (image && imageKey) {
-			console.log('Fail on DB update, deleting recent image upload from R2...');
+			logger.error('Error on DB update, deleting recent image upload from R2...');
 			await deleteImageFromR2(imageKey);
 		}
 
@@ -70,7 +71,7 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 
 	if (image && imageKey) {
 		const previousImageKey = `profiles/${username}/${username}-${user?.profile_image_ver - 1 || 0}.png`; // Assuming the previous image key format is known
-		console.log('Deleting previous image from R2...');
+		logger.info('Deleting previous image from R2...');
 		await deleteImageFromR2(previousImageKey);
 	}
 
