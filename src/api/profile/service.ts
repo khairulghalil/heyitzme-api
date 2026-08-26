@@ -27,14 +27,15 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 	let imageKey: string | null = null;
 
 	if (image) {
+		console.log('Uploading image to R2...');
 		imageKey = await uploadImageToR2(username, image);
-		console.log('Uploaded image to R2 with key:', imageKey);
 	}
 
 	if (image && !imageKey) {
 		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
 	}
 
+	console.log('Updating Supabase...');
 	const toUpdate = {
 		name: body.name,
 		bio: body.bio,
@@ -59,7 +60,18 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 		.single();
 
 	if (error) {
+		if (image && imageKey) {
+			console.log('Fail on DB update, deleting recent image upload from R2...');
+			await deleteImageFromR2(imageKey);
+		}
+
 		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+	}
+
+	if (image && imageKey) {
+		const previousImageKey = `profiles/${username}/${username}-${user?.profile_image_ver - 1 || 0}.png`; // Assuming the previous image key format is known
+		console.log('Deleting previous image from R2...');
+		await deleteImageFromR2(previousImageKey);
 	}
 
 	return keysToCamel(user);
@@ -76,4 +88,8 @@ const uploadImageToR2 = async (username: string, image: File) => {
 	});
 
 	return imageKey;
+};
+
+const deleteImageFromR2 = async (imageKey: string) => {
+	await workerEnv.PROFILE_IMAGES.delete(imageKey);
 };
