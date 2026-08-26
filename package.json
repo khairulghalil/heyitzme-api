@@ -20,6 +20,7 @@
 		"wrangler": "^4.124.0"
 	},
 	"dependencies": {
+		"@mjackson/multipart-parser": "^0.10.1",
 		"@supabase/supabase-js": "^2.112.3",
 		"bcryptjs": "^3.0.3",
 		"cookie-parser": "^1.4.7",

@@ -25,4 +25,9 @@ export const ERROR_MESSAGES = {
 		statusCode: StatusCodes.INTERNAL_SERVER_ERROR,
 		message: 'INTERNAL_SERVER_ERROR',
 	},
+
+	BAD_REQUEST: {
+		statusCode: StatusCodes.BAD_REQUEST,
+		message: 'BAD_REQUEST',
+	},
 } as const;

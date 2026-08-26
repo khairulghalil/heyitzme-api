@@ -26,13 +26,21 @@ export const getProfile = async (req: Request, res: Response) => {
 export const updateProfile = async (req: Request, res: Response) => {
 	try {
 		const { username } = req.params;
-		const data = req.body;
 
 		if (req.user?.id !== username) {
 			throw new AppError(ERROR_MESSAGES.FORBIDDEN);
 		}
 
-		const response = await updateProfileByUsername(username as string, data);
+		const dataString = req.body.data;
+
+		if (typeof dataString !== 'string') {
+			throw new AppError(ERROR_MESSAGES.BAD_REQUEST);
+		}
+
+		const data = JSON.parse(dataString);
+		const image = req.file ?? null;
+
+		const response = await updateProfileByUsername(username as string, data, image instanceof File ? image : null);
 
 		res.json({
 			success: true,
