@@ -14,6 +14,7 @@ app.use(
 );
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // toyyibPay posts callbacks as x-www-form-urlencoded
 app.use(cookieParser());
 
 app.get('/', (req, res) => {

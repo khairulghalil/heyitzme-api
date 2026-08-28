@@ -12,7 +12,7 @@
 		{
 			"binding": "PROFILE_IMAGES",
 			"bucket_name": "heyitzme-images",
-			"remote": true,
+			// "remote": true,
 		},
 	],
 

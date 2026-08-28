@@ -30,4 +30,9 @@ export const ERROR_MESSAGES = {
 		statusCode: StatusCodes.BAD_REQUEST,
 		message: 'BAD_REQUEST',
 	},
+
+	PAYMENT_GATEWAY_ERROR: {
+		statusCode: StatusCodes.BAD_GATEWAY,
+		message: 'PAYMENT_GATEWAY_ERROR',
+	},
 } as const;
