@@ -42,15 +42,23 @@ const postForm = async (config: ToyyibPayConfig, endpoint: string, fields: Recor
 
 	const response = await fetch(`${config.baseUrl}/${endpoint}`, {
 		method: 'POST',
-		headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+		headers: {
+			'Content-Type': 'application/x-www-form-urlencoded',
+		},
 		body,
 	});
 
+	const responseText = await response.text();
+
 	if (!response.ok) {
-		throw new Error(`toyyibPay request failed with status ${response.status}`);
+		throw new Error(`toyyibPay request failed with status ${response.status}: ${responseText}`);
 	}
 
-	return response.json();
+	try {
+		return JSON.parse(responseText);
+	} catch {
+		throw new Error(`toyyibPay returned an unexpected response: ${responseText}`);
+	}
 };
 
 export const createBill = async (config: ToyyibPayConfig, params: CreateBillParams) => {
