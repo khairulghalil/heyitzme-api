@@ -26,7 +26,13 @@ export const getProfileByUsername = async (username: string) => {
 	return response;
 };
 
-export const updateProfileByUsername = async (username: string, body: Record<string, any>, image?: File | null, banner?: File | null, logo?: File | null) => {
+export const updateProfileByUsername = async (
+	username: string,
+	body: Record<string, any>,
+	image?: File | null,
+	banner?: File | null,
+	logo?: File | null,
+) => {
 	let imageKey: string | null = null;
 	let bannerKey: string | null = null;
 	let logoKey: string | null = null;
