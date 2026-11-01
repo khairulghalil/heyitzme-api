@@ -13,7 +13,7 @@ export const getProfileByUsername = async (username: string) => {
 	const { data: user, error } = await supabase
 		.from('profiles')
 		.select(
-			'username, name, bio, profile_image, profile_image_ver, about, additional_section, contact, social_media, theme, banner_bg, banner_bg_ver, logo_image, logo_image_ver, registered_email, status, expires_at',
+			'username, name, bio, description, profile_image, profile_image_ver, about, additional_section, contact, social_media, theme, banner_bg, banner_bg_ver, logo_image, logo_image_ver, registered_email, status, expires_at',
 		)
 		.eq('username', username)
 		.single();
@@ -80,6 +80,7 @@ export const updateProfileByUsername = async (
 	const toUpdate = {
 		name: body.name,
 		bio: body.bio,
+		description: body.description,
 		profile_image: body.profileImage,
 		profile_image_ver: body.profileImageVer,
 		about: body.about,
@@ -107,7 +108,7 @@ export const updateProfileByUsername = async (
 		.update(transformedData)
 		.eq('username', username)
 		.select(
-			'username, name, bio, profile_image, profile_image_ver, about, additional_section, contact, social_media, theme, banner_bg, banner_bg_ver, logo_image, logo_image_ver, registered_email,status, expires_at',
+			'username, name, bio, description, profile_image, profile_image_ver, about, additional_section, contact, social_media, theme, banner_bg, banner_bg_ver, logo_image, logo_image_ver, registered_email,status, expires_at',
 		)
 		.single();
 
