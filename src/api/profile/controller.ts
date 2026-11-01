@@ -41,12 +41,14 @@ export const updateProfile = async (req: Request, res: Response) => {
 		const image = req.file ?? null;
 
 		const banner = req.bannerFile ?? null;
+		const logo = req.logoFile ?? null;
 
 		const response = await updateProfileByUsername(
 			username as string,
 			data,
 			image instanceof File ? image : null,
 			banner instanceof File ? banner : null,
+			logo instanceof File ? logo : null,
 		);
 
 		res.json({

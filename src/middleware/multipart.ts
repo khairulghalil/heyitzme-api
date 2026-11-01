@@ -20,6 +20,10 @@ export const parseMultipart = async (req: Request, res: Response, next: NextFunc
 					req.bannerFile = new File([part.arrayBuffer], part.filename, {
 						type: part.mediaType ?? 'application/octet-stream',
 					});
+				} else if (part.name === 'logo') {
+					req.logoFile = new File([part.arrayBuffer], part.filename, {
+						type: part.mediaType ?? 'application/octet-stream',
+					});
 				}
 			} else if (part.name) {
 				fields[part.name] = part.text;

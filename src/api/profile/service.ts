@@ -26,9 +26,10 @@ export const getProfileByUsername = async (username: string) => {
 	return response;
 };
 
-export const updateProfileByUsername = async (username: string, body: Record<string, any>, image?: File | null, banner?: File | null) => {
+export const updateProfileByUsername = async (username: string, body: Record<string, any>, image?: File | null, banner?: File | null, logo?: File | null) => {
 	let imageKey: string | null = null;
 	let bannerKey: string | null = null;
+	let logoKey: string | null = null;
 
 	if (image) {
 		logger.info('Uploading image to R2...');
@@ -47,6 +48,18 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 		if (!bannerKey) {
 			if (imageKey) await deleteImageFromR2(workerEnv.PROFILE_IMAGES, imageKey);
 			logger.error('Error uploading banner to R2, aborting profile update...');
+			throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+		}
+	}
+
+	if (logo) {
+		logger.info('Uploading logo to R2...');
+		logoKey = await uploadImageToR2(workerEnv.PROFILE_IMAGES, `logos/${username}`, logo);
+
+		if (!logoKey) {
+			if (imageKey) await deleteImageFromR2(workerEnv.PROFILE_IMAGES, imageKey);
+			if (bannerKey) await deleteImageFromR2(workerEnv.PROFILE_IMAGES, bannerKey);
+			logger.error('Error uploading logo to R2, aborting profile update...');
 			throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
 		}
 	}
@@ -76,6 +89,7 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 			: body.bannerBgCustom === false && body.bannerBg
 				? { banner_bg: body.bannerBg }
 				: {}),
+		...(logoKey ? { logo_image: logoKey, logo_image_ver: body.logoImageVer } : {}),
 		...(newPasswordHash ? { password_hash: newPasswordHash } : {}),
 	};
 
@@ -86,11 +100,16 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 		.update(transformedData)
 		.eq('username', username)
 		.select(
-			'username, name, bio, profile_image, profile_image_ver, about, contact, social_media, theme, banner_bg, banner_bg_ver, registered_email,status, expires_at',
+			'username, name, bio, profile_image, profile_image_ver, about, contact, social_media, theme, banner_bg, banner_bg_ver, logo_image, logo_image_ver, registered_email,status, expires_at',
 		)
 		.single();
 
 	if (error) {
+		if (logoKey) {
+			logger.error('Error on DB update, deleting recent logo upload from R2...');
+			await deleteImageFromR2(workerEnv.PROFILE_IMAGES, logoKey);
+		}
+
 		if (bannerKey) {
 			logger.error('Error on DB update, deleting recent banner upload from R2...');
 			await deleteImageFromR2(workerEnv.PROFILE_IMAGES, bannerKey);
@@ -114,6 +133,12 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 		const previousBannerKey = `banners/${username}/${username}-banner-${user?.banner_bg_ver - 1 || 0}.png`;
 		logger.info('Deleting previous banner from R2...');
 		await deleteImageFromR2(workerEnv.PROFILE_IMAGES, previousBannerKey);
+	}
+
+	if (logoKey) {
+		const previousLogoKey = `logos/${username}/${username}-logo-${user?.logo_image_ver - 1 || 0}.png`;
+		logger.info('Deleting previous logo from R2...');
+		await deleteImageFromR2(workerEnv.PROFILE_IMAGES, previousLogoKey);
 	}
 
 	return keysToCamel(user);

@@ -6,6 +6,7 @@ declare global {
 			supabase: SupabaseClient;
 			file?: File;
 			bannerFile?: File;
+			logoFile?: File;
 			user?: {
 				id: string;
 			};
