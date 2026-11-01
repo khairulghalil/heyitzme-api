@@ -40,7 +40,14 @@ export const updateProfile = async (req: Request, res: Response) => {
 		const data = JSON.parse(dataString);
 		const image = req.file ?? null;
 
-		const response = await updateProfileByUsername(username as string, data, image instanceof File ? image : null);
+		const banner = req.bannerFile ?? null;
+
+		const response = await updateProfileByUsername(
+			username as string,
+			data,
+			image instanceof File ? image : null,
+			banner instanceof File ? banner : null,
+		);
 
 		res.json({
 			success: true,

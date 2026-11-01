@@ -13,7 +13,7 @@ export const getProfileByUsername = async (username: string) => {
 	const { data: user, error } = await supabase
 		.from('profiles')
 		.select(
-			'username, name, bio, profile_image, profile_image_ver, about, contact, social_media, theme, registered_email, status, expires_at',
+			'username, name, bio, profile_image, profile_image_ver, about, contact, social_media, theme, banner_bg, banner_bg_ver,registered_email, status, expires_at',
 		)
 		.eq('username', username)
 		.single();
@@ -26,8 +26,9 @@ export const getProfileByUsername = async (username: string) => {
 	return response;
 };
 
-export const updateProfileByUsername = async (username: string, body: Record<string, any>, image?: File | null) => {
+export const updateProfileByUsername = async (username: string, body: Record<string, any>, image?: File | null, banner?: File | null) => {
 	let imageKey: string | null = null;
+	let bannerKey: string | null = null;
 
 	if (image) {
 		logger.info('Uploading image to R2...');
@@ -37,6 +38,17 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 	if (image && !imageKey) {
 		logger.error('Error uploading image to R2, aborting profile update...');
 		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+	}
+
+	if (body.bannerBgCustom === true && banner) {
+		logger.info('Uploading banner to R2...');
+		bannerKey = await uploadImageToR2(workerEnv.PROFILE_IMAGES, `banners/${username}`, banner);
+
+		if (!bannerKey) {
+			if (imageKey) await deleteImageFromR2(workerEnv.PROFILE_IMAGES, imageKey);
+			logger.error('Error uploading banner to R2, aborting profile update...');
+			throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	logger.info('Updating profile in DB...');
@@ -59,6 +71,11 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 		status: body.status,
 		updated_at: new Date().toISOString(),
 		...(imageKey ? { profile_image: imageKey } : {}),
+		...(bannerKey
+			? { banner_bg: bannerKey, banner_bg_ver: body.bannerBgVer }
+			: body.bannerBgCustom === false && body.bannerBg
+				? { banner_bg: body.bannerBg }
+				: {}),
 		...(newPasswordHash ? { password_hash: newPasswordHash } : {}),
 	};
 
@@ -69,11 +86,16 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 		.update(transformedData)
 		.eq('username', username)
 		.select(
-			'username, name, bio, profile_image, profile_image_ver, about, contact, social_media, theme, registered_email,status, expires_at',
+			'username, name, bio, profile_image, profile_image_ver, about, contact, social_media, theme, banner_bg, banner_bg_ver, registered_email,status, expires_at',
 		)
 		.single();
 
 	if (error) {
+		if (bannerKey) {
+			logger.error('Error on DB update, deleting recent banner upload from R2...');
+			await deleteImageFromR2(workerEnv.PROFILE_IMAGES, bannerKey);
+		}
+
 		if (image && imageKey) {
 			logger.error('Error on DB update, deleting recent image upload from R2...');
 			await deleteImageFromR2(workerEnv.PROFILE_IMAGES, imageKey);
@@ -86,6 +108,12 @@ export const updateProfileByUsername = async (username: string, body: Record<str
 		const previousImageKey = `profiles/${username}/${username}-${user?.profile_image_ver - 1 || 0}.png`; // Assuming the previous image key format is known
 		logger.info('Deleting previous image from R2...');
 		await deleteImageFromR2(workerEnv.PROFILE_IMAGES, previousImageKey);
+	}
+
+	if (bannerKey) {
+		const previousBannerKey = `banners/${username}/${username}-banner-${user?.banner_bg_ver - 1 || 0}.png`;
+		logger.info('Deleting previous banner from R2...');
+		await deleteImageFromR2(workerEnv.PROFILE_IMAGES, previousBannerKey);
 	}
 
 	return keysToCamel(user);

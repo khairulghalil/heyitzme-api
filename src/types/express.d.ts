@@ -5,6 +5,7 @@ declare global {
 		interface Request {
 			supabase: SupabaseClient;
 			file?: File;
+			bannerFile?: File;
 			user?: {
 				id: string;
 			};
