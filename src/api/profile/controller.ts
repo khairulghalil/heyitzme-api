@@ -1,17 +1,45 @@
 import type { Request, Response } from 'express';
 import { AppError } from '../../common';
-import { getProfileByUsername, updateProfileByUsername } from './service';
+import { getProfileByUsername, getProfileImageFromR2, updateProfileByUsername } from './service';
 import { ERROR_MESSAGES } from '../../constants';
 
 export const getProfile = async (req: Request, res: Response) => {
 	try {
 		const username = req.params.username as string;
-		const response = await getProfileByUsername(username);
+		const apiOrigin = `${req.protocol}://${req.get('host')}`;
+		const response = await getProfileByUsername(username, apiOrigin);
 
 		res.json({
 			success: true,
 			data: response,
 		});
+	} catch (err) {
+		const error = err instanceof AppError ? err.message : 'An error occurred';
+		const statusCode = err instanceof AppError ? err.statusCode : 500;
+
+		res.status(statusCode).json({
+			success: false,
+			message: error,
+		});
+	}
+};
+
+export const getProfileImageProxy = async (req: Request, res: Response) => {
+	try {
+		const imageUrl = req.query.url;
+		if (typeof imageUrl !== 'string') {
+			throw new AppError(ERROR_MESSAGES.BAD_REQUEST);
+		}
+
+		const imageResponse = await getProfileImageFromR2(imageUrl);
+		imageResponse.headers.forEach((value, key) => res.setHeader(key, value));
+
+		if (!imageResponse.body) {
+			return res.status(imageResponse.status).end();
+		}
+
+		const imageBytes = await imageResponse.arrayBuffer();
+		return res.status(imageResponse.status).end(Buffer.from(imageBytes));
 	} catch (err) {
 		const error = err instanceof AppError ? err.message : 'An error occurred';
 		const statusCode = err instanceof AppError ? err.statusCode : 500;

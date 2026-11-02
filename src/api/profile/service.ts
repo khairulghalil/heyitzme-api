@@ -9,7 +9,7 @@ import { keysToCamel, keysToSnake } from '../../utils';
 const workerEnv = env as unknown as Env;
 const supabase = createSupabaseClient(workerEnv);
 
-export const getProfileByUsername = async (username: string) => {
+export const getProfileByUsername = async (username: string, apiOrigin: string) => {
 	const { data: user, error } = await supabase
 		.from('profiles')
 		.select(
@@ -23,7 +23,75 @@ export const getProfileByUsername = async (username: string) => {
 	}
 
 	const response = keysToCamel(user);
-	return response;
+	const profileImage = typeof user.profile_image === 'string' ? user.profile_image : null;
+	let proxyProfileImageUrl: string | null = null;
+
+	if (profileImage) {
+		const imageUrl = profileImage.startsWith('http') ? profileImage : `https://images.heyitzme.com/${profileImage.replace(/^\/+/, '')}`;
+		const proxyUrl = new URL('/profile/image-proxy', apiOrigin);
+		proxyUrl.searchParams.set('url', imageUrl);
+		proxyProfileImageUrl = proxyUrl.toString();
+	}
+
+	return { ...response, proxyProfileImageUrl };
+};
+
+export const getProfileImageFromR2 = async (imageUrl: string) => {
+	let parsedUrl: URL;
+	try {
+		parsedUrl = new URL(imageUrl);
+	} catch {
+		throw new AppError(ERROR_MESSAGES.BAD_REQUEST);
+	}
+
+	if (
+		parsedUrl.protocol !== 'https:' ||
+		parsedUrl.hostname !== 'images.heyitzme.com' ||
+		parsedUrl.port ||
+		parsedUrl.username ||
+		parsedUrl.password ||
+		parsedUrl.search ||
+		parsedUrl.hash
+	) {
+		throw new AppError(ERROR_MESSAGES.BAD_REQUEST);
+	}
+
+	let imagePath: string;
+	try {
+		imagePath = decodeURIComponent(parsedUrl.pathname).replace(/^\/+/, '');
+	} catch {
+		throw new AppError(ERROR_MESSAGES.BAD_REQUEST);
+	}
+
+	const pathSegments = imagePath.split('/');
+	if (
+		pathSegments.length !== 3 ||
+		pathSegments[0] !== 'profiles' ||
+		pathSegments.some((segment) => !segment || segment === '.' || segment === '..' || /[\\\0]/.test(segment)) ||
+		!/\.(avif|gif|jpe?g|png|webp)$/i.test(pathSegments[2])
+	) {
+		throw new AppError(ERROR_MESSAGES.BAD_REQUEST);
+	}
+
+	const object = await workerEnv.PROFILE_IMAGES.get(imagePath);
+	if (!object?.body) {
+		throw new AppError(ERROR_MESSAGES.NOT_FOUND);
+	}
+
+	const headers = new Headers();
+	object.writeHttpMetadata(headers);
+	const contentType = headers.get('Content-Type')?.toLowerCase();
+	if (!contentType || !/^image\/(avif|gif|jpeg|png|webp)$/.test(contentType)) {
+		throw new AppError(ERROR_MESSAGES.NOT_FOUND);
+	}
+
+	headers.set('Content-Type', contentType);
+	headers.set('Access-Control-Allow-Origin', '*');
+	headers.set('Cross-Origin-Resource-Policy', 'cross-origin');
+	headers.set('X-Content-Type-Options', 'nosniff');
+	headers.set('Cache-Control', headers.get('Cache-Control') ?? 'public, max-age=3600');
+
+	return new Response(object.body, { headers });
 };
 
 export const updateProfileByUsername = async (
