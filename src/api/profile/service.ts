@@ -176,7 +176,7 @@ export const updateProfileByUsername = async (
 		.update(transformedData)
 		.eq('username', username)
 		.select(
-			'username, name, bio, description, profile_image, profile_image_ver, about, additional_section, contact, social_media, theme, banner_bg, banner_bg_ver, logo_image, logo_image_ver, registered_email,status, expires_at',
+			'username, plan, name, bio, description, profile_image, profile_image_ver, about, additional_section, contact, social_media, theme, banner_bg, banner_bg_ver, logo_image, logo_image_ver, registered_email,status, expires_at',
 		)
 		.single();
 
