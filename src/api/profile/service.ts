@@ -101,6 +101,28 @@ export const updateProfileByUsername = async (
 	banner?: File | null,
 	logo?: File | null,
 ) => {
+	const { data: currentProfileData, error: currentProfileDataError } = await supabase
+		.from('profiles')
+		.select('plan, password_hash')
+		.eq('username', username)
+		.single();
+
+	if (currentProfileDataError) {
+		logger.error('Error fetching current profile data from DB...');
+		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+	}
+
+	let newPasswordHash: string | null = null;
+	if (body.currentPassword && body.newPassword) {
+		newPasswordHash = await handlePasswordUpdate(currentProfileData.password_hash, body.currentPassword, body.newPassword);
+	}
+
+	console.log('newPasswordHash', newPasswordHash);
+	if (currentProfileData.plan !== body.plan && !newPasswordHash) {
+		logger.error('Current plan does not match with provided plan');
+		throw new AppError(ERROR_MESSAGES.FORBIDDEN);
+	}
+
 	let imageKey: string | null = null;
 	let bannerKey: string | null = null;
 	let logoKey: string | null = null;
@@ -126,7 +148,7 @@ export const updateProfileByUsername = async (
 		}
 	}
 
-	if (logo) {
+	if (logo && (currentProfileData.plan == 'pro' || currentProfileData.plan == 'premium')) {
 		logger.info('Uploading logo to R2...');
 		logoKey = await uploadImageToR2(workerEnv.PROFILE_IMAGES, `logos/${username}`, logo);
 
@@ -136,13 +158,6 @@ export const updateProfileByUsername = async (
 			logger.error('Error uploading logo to R2, aborting profile update...');
 			throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
 		}
-	}
-
-	logger.info('Updating profile in DB...');
-
-	let newPasswordHash: string | null = null;
-	if (body.currentPassword && body.newPassword) {
-		newPasswordHash = await handlePasswordUpdate(username, body.currentPassword, body.newPassword);
 	}
 
 	const toUpdate = {
@@ -170,6 +185,8 @@ export const updateProfileByUsername = async (
 	};
 
 	const transformedData = keysToSnake(toUpdate);
+
+	logger.info('Updating profile in DB...');
 
 	const { data: user, error } = await supabase
 		.from('profiles')
@@ -220,14 +237,8 @@ export const updateProfileByUsername = async (
 	return keysToCamel(user);
 };
 
-const handlePasswordUpdate = async (username: string, currentPassword: string, newPassword: string) => {
-	const { data: userPassword, error } = await supabase.from('profiles').select('password_hash').eq('username', username).single();
-
-	if (error || !userPassword) {
-		throw new AppError(ERROR_MESSAGES.FORBIDDEN);
-	}
-
-	const passwordValid = await bcrypt.compare(currentPassword, userPassword.password_hash);
+const handlePasswordUpdate = async (currentPasswordHash: string, currentPassword: string, newPassword: string) => {
+	const passwordValid = await bcrypt.compare(currentPassword, currentPasswordHash);
 
 	if (!passwordValid) {
 		throw new AppError(ERROR_MESSAGES.FORBIDDEN);
