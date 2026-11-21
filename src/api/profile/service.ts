@@ -103,7 +103,7 @@ export const updateProfileByUsername = async (
 ) => {
 	const { data: currentProfileData, error: currentProfileDataError } = await supabase
 		.from('profiles')
-		.select('plan, password_hash')
+		.select('plan')
 		.eq('username', username)
 		.single();
 
@@ -112,13 +112,7 @@ export const updateProfileByUsername = async (
 		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
 	}
 
-	let newPasswordHash: string | null = null;
-	if (body.currentPassword && body.newPassword) {
-		newPasswordHash = await handlePasswordUpdate(currentProfileData.password_hash, body.currentPassword, body.newPassword);
-	}
-
-	console.log('newPasswordHash', newPasswordHash);
-	if (currentProfileData.plan !== body.plan && !newPasswordHash) {
+	if (currentProfileData.plan !== body.plan) {
 		logger.error('Current plan does not match with provided plan');
 		throw new AppError(ERROR_MESSAGES.FORBIDDEN);
 	}
@@ -181,7 +175,6 @@ export const updateProfileByUsername = async (
 				? { banner_bg: body.bannerBg }
 				: {}),
 		...(logoKey ? { logo_image: logoKey, logo_image_ver: body.logoImageVer } : {}),
-		...(newPasswordHash ? { password_hash: newPasswordHash } : {}),
 	};
 
 	const transformedData = keysToSnake(toUpdate);
@@ -235,16 +228,4 @@ export const updateProfileByUsername = async (
 	}
 
 	return keysToCamel(user);
-};
-
-const handlePasswordUpdate = async (currentPasswordHash: string, currentPassword: string, newPassword: string) => {
-	const passwordValid = await bcrypt.compare(currentPassword, currentPasswordHash);
-
-	if (!passwordValid) {
-		throw new AppError(ERROR_MESSAGES.FORBIDDEN);
-	}
-
-	const newPasswordHash = await bcrypt.hash(newPassword, 10);
-
-	return newPasswordHash;
 };
