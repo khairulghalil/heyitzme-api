@@ -37,3 +37,27 @@ export const loginByUsername = async (params: any) => {
 
 	return response;
 };
+
+export const changeUserPassword = async (params: any) => {
+	const { data: data, error } = await supabase.from('profiles').select('password_hash').eq('username', params.username).single();
+
+	if (error || !data) {
+		throw new AppError(ERROR_MESSAGES.INVALID_CREDENTIALS);
+	}
+
+	const passwordValid = await bcrypt.compare(params.currentPassword, data.password_hash);
+
+	if (!passwordValid) {
+		throw new AppError(ERROR_MESSAGES.INVALID_CREDENTIALS);
+	}
+
+	const newPasswordHash = await bcrypt.hash(params.newPassword, 10);
+
+	const { error: updateError } = await supabase.from('profiles').update({ password_hash: newPasswordHash }).eq('username', params.username);
+
+	if (updateError) {
+		throw new AppError(ERROR_MESSAGES.INTERNAL_SERVER_ERROR);
+	}
+
+	return;
+};

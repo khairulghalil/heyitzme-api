@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { AppError, durationToMs } from '../../common';
 import { env } from 'cloudflare:workers';
 import type { Env } from '../../types/env';
-import { loginByUsername } from './service';
+import { loginByUsername, changeUserPassword } from './service';
 
 const workerEnv = env as unknown as Env;
 
@@ -24,6 +24,26 @@ export const login = async (req: Request, res: Response) => {
 		res.json({
 			success: true,
 			data: response.authHint,
+		});
+	} catch (err) {
+		const error = err instanceof AppError ? err.message : 'An error occurred';
+		const statusCode = err instanceof AppError ? err.statusCode : 500;
+
+		res.status(statusCode).json({
+			success: false,
+			message: error,
+		});
+	}
+};
+
+export const changePassword = async (req: Request, res: Response) => {
+	try {
+		const data = req.body.data;
+		const response = await changeUserPassword(data);
+
+		res.json({
+			success: true,
+			data: response,
 		});
 	} catch (err) {
 		const error = err instanceof AppError ? err.message : 'An error occurred';
